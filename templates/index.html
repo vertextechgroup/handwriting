@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handwriting AI | Professional Handwriting Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary: #000000;
+            --secondary: #6B7280;
+            --accent: #3B82F6;
+            --bg: #F9FAFB;
+            --card-bg: #FFFFFF;
+            --border: #E5E7EB;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--primary);
+            overflow-x: hidden;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
+        }
+
+        .hero-section {
+            padding: 4rem 0;
+            text-align: center;
+        }
+
+        .main-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: var(--bg);
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--accent);
+            background: #EFF6FF;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: transform 0.2s;
+        }
+
+        .btn-primary:hover {
+            background-color: #1a1a1a;
+            transform: translateY(-1px);
+        }
+
+        .progress-container {
+            margin-top: 2rem;
+            display: none;
+        }
+
+        .progress {
+            height: 10px;
+            border-radius: 5px;
+            background-color: var(--border);
+        }
+
+        .progress-bar {
+            background-color: var(--primary);
+            border-radius: 5px;
+        }
+
+        .preview-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .preview-item {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            aspect-ratio: 1 / 1.4;
+            background: #fff;
+            transition: transform 0.2s;
+        }
+
+        .preview-item:hover {
+            transform: scale(1.02);
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .badge-status {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-generating { background: #DBEAFE; color: #1E40AF; }
+        .status-completed { background: #DCFCE7; color: #166534; }
+        .status-failed { background: #FEE2E2; color: #991B1B; }
+
+        .config-panel {
+            background: #F3F4F6;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-top: 1.5rem;
+        }
+
+        #text-preview {
+            width: 100%;
+            min-height: 200px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; translateY: 10px; }
+            to { opacity: 1; translateY: 0; }
+        }
+
+        .animate-fade {
+            animation: fadeIn 0.5s ease forwards;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
+                <i class="bi bi-pen-fill me-2"></i> Handwriting AI
+            </a>
+            <div class="d-flex align-items-center">
+                <span id="current-session-badge" class="badge bg-light text-dark me-3" style="display:none"></span>
+                <button class="btn btn-outline-dark btn-sm rounded-pill" onclick="location.reload()">New Session</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="hero-section animate-fade">
+            <h1 class="display-5 fw-bold mb-3">Convert Documents to Handwriting</h1>
+            <p class="text-secondary lead">Professional AI-powered handwriting generation for PDF, DOCX, and Text.</p>
+        </div>
+
+        <div class="row justify-content-center mb-5">
+            <div class="col-lg-10">
+                <!-- Upload Section -->
+                <div id="upload-section" class="main-card animate-fade">
+                    <div id="drop-zone" class="upload-area">
+                        <i class="bi bi-cloud-upload display-4 text-secondary mb-3"></i>
+                        <h4>Drag & Drop your file</h4>
+                        <p class="text-secondary">PDF, DOCX or TXT (Max 50MB)</p>
+                        <input type="file" id="file-input" hidden accept=".pdf,.docx,.txt">
+                        <button class="btn btn-primary mt-3" onclick="document.getElementById('file-input').click()">
+                            Browse Files
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Processing Section -->
+                <div id="processing-section" class="main-card animate-fade" style="display:none">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="mb-0">Document Content</h4>
+                        <div id="job-status-badge" class="badge-status">Processing...</div>
+                    </div>
+                    
+                    <textarea id="text-preview" spellcheck="false"></textarea>
+                    
+                    <div class="config-panel">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold">Font Selection</label>
+                                <select id="font-name" class="form-select form-select-sm">
+                                    <option value="default.ttf" selected>Ultra-Realistic Ink (AI v2)</option>
+                                    <option value="casual.ttf">Natural Script</option>
+                                    <option value="professional.ttf">Executive Print</option>
+                                    <option value="cursive.ttf">Elegant Cursive</option>
+                                </select>
+                                <div class="form-text x-small">Upload fonts to static/fonts/</div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold">Paper Type</label>
+                                <select id="paper-type" class="form-select form-select-sm">
+                                    <option value="ruled" selected>Ruled Paper</option>
+                                    <option value="notebook">Notebook (with margin)</option>
+                                    <option value="exam">Exam Sheet</option>
+                                    <option value="blank">Blank Paper</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold">Pen Style</label>
+                                <select id="pen-style" class="form-select form-select-sm">
+                                    <option value="gel" selected>Gel Pen</option>
+                                    <option value="ballpoint">Ballpoint Pen</option>
+                                    <option value="fountain">Fountain Pen</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold">Ink Color</label>
+                                <div class="d-flex gap-2 align-items-center">
+                                    <input type="color" id="ink-color" class="form-control form-control-sm form-control-color" value="#000080" title="Choose ink color">
+                                    <span class="small text-secondary">Deep Blue</span>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Realism Intensity</label>
+                                <input type="range" id="realism-intensity" class="form-range" min="0" max="2" step="0.1" value="1.4">
+                                <div class="d-flex justify-content-between x-small text-secondary">
+                                    <span>Mechanical (Typo)</span>
+                                    <span>Professional</span>
+                                    <span>Natural (Recommended)</span>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Export Quality (DPI)</label>
+                                <select id="export-dpi" class="form-select form-select-sm">
+                                    <option value="300" selected>300 DPI (Standard)</option>
+                                    <option value="600">600 DPI (Ultra Sharp)</option>
+                                </select>
+                            </div>
+
+                            <div class="col-12 text-center mt-4">
+                                <button id="start-btn" class="btn btn-primary btn-lg px-5">
+                                    <i class="bi bi-magic me-2"></i> Generate Realistic Handwriting
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress & Results -->
+                <div id="results-section" class="main-card animate-fade" style="display:none">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="mb-0">Generation Progress</h4>
+                        <div id="progress-percent" class="fw-bold">0%</div>
+                    </div>
+                    
+                    <div class="progress mb-3">
+                        <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    
+                    <p id="progress-text" class="text-secondary small mb-4">Starting engine...</p>
+
+                    <div id="download-controls" style="display:none" class="mb-4">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <a id="dl-pdf" href="#" class="btn btn-dark w-100 py-3">
+                                    <i class="bi bi-file-earmark-pdf me-2"></i> Download PDF
+                                </a>
+                            </div>
+                            <div class="col-md-6">
+                                <a id="dl-zip" href="#" class="btn btn-outline-dark w-100 py-3">
+                                    <i class="bi bi-file-earmark-zip me-2"></i> Download All (ZIP)
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="mb-3">Preview Pages</h5>
+                    <div id="gallery" class="preview-gallery">
+                        <!-- Pages will appear here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Zoom -->
+    <div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-body p-0 text-center">
+                    <img id="modal-img" src="" class="img-fluid" style="max-height: 90vh;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let sessionId = null;
+        let pollInterval = null;
+
+        const elements = {
+            uploadSection: document.getElementById('upload-section'),
+            processingSection: document.getElementById('processing-section'),
+            resultsSection: document.getElementById('results-section'),
+            dropZone: document.getElementById('drop-zone'),
+            fileInput: document.getElementById('file-input'),
+            textPreview: document.getElementById('text-preview'),
+            startBtn: document.getElementById('start-btn'),
+            progressBar: document.getElementById('progress-bar'),
+            progressPercent: document.getElementById('progress-percent'),
+            progressText: document.getElementById('progress-text'),
+            gallery: document.getElementById('gallery'),
+            downloadControls: document.getElementById('download-controls'),
+            statusBadge: document.getElementById('job-status-badge')
+        };
+
+        // --- Upload Handling ---
+        elements.dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            elements.dropZone.classList.add('dragover');
+        });
+
+        elements.dropZone.addEventListener('dragleave', () => {
+            elements.dropZone.classList.remove('dragover');
+        });
+
+        elements.dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            elements.dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length) handleFileUpload(files[0]);
+        });
+
+        elements.fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleFileUpload(e.target.files[0]);
+        });
+
+        async function handleFileUpload(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/upload', { method: 'POST', body: formData });
+                const data = await response.json();
+                
+                if (data.error) throw new Error(data.error);
+                
+                sessionId = data.session_id;
+                document.getElementById('current-session-badge').textContent = `Session: ${sessionId.slice(0,8)}`;
+                document.getElementById('current-session-badge').style.display = 'inline-block';
+                
+                elements.uploadSection.style.display = 'none';
+                elements.processingSection.style.display = 'block';
+                
+                extractText();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function extractText() {
+            elements.statusBadge.textContent = 'Extracting Text...';
+            try {
+                const response = await fetch('/extract-text', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: sessionId })
+                });
+                const data = await response.json();
+                elements.textPreview.value = data.text;
+                elements.statusBadge.textContent = 'Text Extracted';
+            } catch (err) {
+                alert('Extraction failed');
+            }
+        }
+
+        // --- Generation Handling ---
+        elements.startBtn.addEventListener('click', async () => {
+            const text = elements.textPreview.value;
+            const fontName = document.getElementById('font-name').value;
+            const inkColor = document.getElementById('ink-color').value;
+            const paperType = document.getElementById('paper-type').value;
+            const penStyle = document.getElementById('pen-style').value;
+            const realism = document.getElementById('realism-intensity').value;
+            const dpi = document.getElementById('export-dpi').value;
+
+            try {
+                await fetch('/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        text: text,
+                        font_name: fontName,
+                        ink_color: inkColor,
+                        paper_type: paperType,
+                        pen_style: penStyle,
+                        realism: parseFloat(realism),
+                        dpi: parseInt(dpi)
+                    })
+                });
+
+                elements.processingSection.style.display = 'none';
+                elements.resultsSection.style.display = 'block';
+                startPolling();
+            } catch (err) {
+                alert('Failed to start generation');
+            }
+        });
+
+        function startPolling() {
+            pollInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/status/${sessionId}`);
+                    const data = await response.json();
+                    
+                    updateProgress(data);
+                    
+                    if (data.status === 'completed' || data.status === 'failed') {
+                        clearInterval(pollInterval);
+                        if (data.status === 'completed') {
+                            elements.downloadControls.style.display = 'block';
+                            elements.dlPdf = document.getElementById('dl-pdf').href = `/download-pdf/${sessionId}`;
+                            elements.dlZip = document.getElementById('dl-zip').href = `/download-zip/${sessionId}`;
+                        }
+                    }
+                } catch (err) {
+                    console.error('Polling error', err);
+                }
+            }, 3000);
+        }
+
+        function updateProgress(data) {
+            elements.progressBar.style.width = `${data.progress}%`;
+            elements.progressPercent.textContent = `${data.progress}%`;
+            
+            if (data.status === 'generating') {
+                elements.progressText.textContent = `Generating page ${data.current_page} of ${data.total_pages}...`;
+            } else if (data.status === 'completed') {
+                elements.progressText.textContent = 'Generation completed successfully!';
+                elements.progressBar.classList.remove('progress-bar-animated');
+            } else if (data.status === 'failed') {
+                elements.progressText.textContent = `Error: ${data.error}`;
+                elements.progressBar.classList.add('bg-danger');
+            }
+
+            // Update Gallery
+            if (data.thumb_urls && data.thumb_urls.length > elements.gallery.children.length) {
+                const startIndex = elements.gallery.children.length;
+                for (let i = startIndex; i < data.thumb_urls.length; i++) {
+                    const item = document.createElement('div');
+                    item.className = 'preview-item animate-fade';
+                    item.innerHTML = `<img src="${data.thumb_urls[i]}" onclick="zoomImage('${data.preview_urls[i]}')">`;
+                    elements.gallery.appendChild(item);
+                }
+            }
+        }
+
+        function zoomImage(url) {
+            document.getElementById('modal-img').src = url;
+            new bootstrap.Modal(document.getElementById('previewModal')).show();
+        }
+    </script>
+</body>
+</html>
